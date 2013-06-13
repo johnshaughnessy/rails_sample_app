@@ -15,10 +15,13 @@ describe "Authentication" do
     before { visit signin_path }
 
     describe "with invalid information" do
+      let(:user) { FactoryGirl.create(:user) }
       before { click_button "Sign in" }
 
       it { should have_selector('title', text: 'Sign in') }
       it { should have_selector('div.alert.alert-error', text: 'Invalid') }
+      it { should_not have_link('Settings', href:edit_user_path(user)) }
+      it { should_not have_link('Sign out', href: signout_path) }
 
       describe "after visiting another page" do
         before { click_link "Home" }
@@ -55,9 +58,7 @@ describe "Authentication" do
       describe "when attempting to visit a protected page" do
         before do
           visit edit_user_path(user)
-          fill_in "Email",    with: user.email
-          fill_in "Password", with: user.password
-          click_button "Sign in"
+          sign_in user
         end
 
         describe "after signing in" do
@@ -65,6 +66,18 @@ describe "Authentication" do
           it "should render the desired protected page" do
             page.should have_selector('title', text: 'Edit user')
           end
+        end
+      end
+
+      describe "in the Microposts controller" do
+        describe "submitting to the create action" do
+          before { post microposts_path }
+          specify { response.should redirect_to(signin_path) }
+        end
+
+        describe "submitting to the destroy action" do
+          before { delete micropost_path(FactoryGirl.create(:micropost)) }
+          specify { response.should redirect_to(signin_path) }
         end
       end
 
